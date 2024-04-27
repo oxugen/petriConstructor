@@ -1,22 +1,31 @@
 package com.example.petriadcance;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PetriTransition {
     private String name;
-    private PetriState sourceState;
-    private PetriState targetState; // Добавляем поле для хранения целевого состояния
+    private List<PetriStateView> sourceState;
+    private List<PetriStateView> targetState;
 
-    // Конструктор и другие поля и методы
-
-    // Метод для установки целевого состояния
-    public void setTargetState(PetriState targetState) {
-        this.targetState = targetState;
+    public void setTargetState(PetriStateView targetState) {
+        this.targetState.add(targetState);
     }
-
-    public PetriState getTargetState() {
+    public List<PetriStateView> getTargetState() {
         return targetState;
     }
+
+    public void setSourceState(PetriStateView sourceState) {
+        this.sourceState.add(sourceState);
+    }
+    public List<PetriStateView> getSourceState() {
+        return sourceState;
+    }
+
     public PetriTransition(String name) {
         this.name = name;
+        this.sourceState = new ArrayList<>();
+        this.targetState = new ArrayList<>();
     }
 
     public String getName() {
@@ -27,12 +36,4 @@ public class PetriTransition {
         this.name = name;
     }
 
-    public void setSourceState(PetriState sourceState) {
-        this.sourceState = sourceState;
-    }
-
-    // Метод для получения исходного состояния
-    public PetriState getSourceState() {
-        return sourceState;
-    }
 }
