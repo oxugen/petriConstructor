@@ -4,6 +4,10 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -21,6 +25,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.util.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -158,22 +163,19 @@ public class HelloApplication extends Application {
                         for (PetriStateView stateSource : sourceOfStartStates) {
                             int sourceTokens = Integer.parseInt(stateSource.getToken().getText());
                             System.out.println("source Tokens " + sourceTokens);
-                            // Добавляем ключевой кадр в Timeline для изменения значения токена через 2 секунды
-                            KeyFrame keyFrame = new KeyFrame(Duration.seconds(2), e -> {
+                            // Обновляем значение токена через 2 секунды
+                            timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(2), e -> {
                                 stateSource.setToken(String.valueOf(sourceTokens - 1)); // Обновляем значение токена
-                            });
-                            timeline.getKeyFrames().add(keyFrame);
+                            }));
                         }
                         for (PetriStateView petriTarget : sourceOfTargetStates) {
                             int targetTokens = Integer.parseInt(petriTarget.getToken().getText());
-
-                            // Добавляем ключевой кадр в Timeline для изменения значения токена через 2 секунды
-                            KeyFrame keyFrame = new KeyFrame(Duration.seconds(2), e -> {
+                            System.out.println("target token" + targetTokens);
+                            // Обновляем значение токена через 2 секунды
+                            timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(2), e -> {
                                 petriTarget.setToken(String.valueOf(targetTokens + 1)); // Обновляем значение токена
-                            });
-                            timeline.getKeyFrames().add(keyFrame);
+                            }));
                         }
-
                         // Обновляем значения токенов
                         timeline.play();
                     }
@@ -361,7 +363,20 @@ public class HelloApplication extends Application {
                 })
                 .sum();
     }
+    class TransitionHandler implements EventHandler<ActionEvent> {
+        private PetriStateView state;
+        private int newTokens;
 
+        public TransitionHandler(PetriStateView state, int newTokens) {
+            this.state = state;
+            this.newTokens = newTokens;
+        }
+
+        @Override
+        public void handle(ActionEvent event) {
+            state.setToken(String.valueOf(newTokens)); // Обновляем значение токена
+        }
+    }
     public static void main(String[] args) {
         launch();
     }
