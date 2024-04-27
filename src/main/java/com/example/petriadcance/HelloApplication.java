@@ -34,7 +34,7 @@ public class HelloApplication extends Application {
 
 
         primaryStage.setTitle("Petri Net Constructor");
-
+        //создание главной сцены
         BorderPane root = new BorderPane();
         Scene scene = new Scene(root, 800, 600);
 
@@ -42,7 +42,7 @@ public class HelloApplication extends Application {
         primaryStage.show();
 
         PetriNet net = new PetriNet();
-
+        //создание кнопок
         ToggleButton addStateButton = new ToggleButton("Add State");
         ToggleButton addLineButton = new ToggleButton("Add Line");
         ToggleButton addTransitionButton = new ToggleButton("Add Transition");
@@ -52,19 +52,19 @@ public class HelloApplication extends Application {
         deleteButton.setOnAction(event -> {
             selectedObject = null;
         });
-
+        //установка цветов и стиля для кнопок
         Label titleLabel = new Label("Визуализация Сети Петри");
         titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 20));
         titleLabel.setPadding(new Insets(10));
-        addLineButton.setStyle("-fx-background-color: #090809; -fx-text-fill: white;"); // Зеленая кнопка
+        addLineButton.setStyle("-fx-background-color: #090809; -fx-text-fill: white;"); //черная кнопка
         addLineButton.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         addLineButton.setOnMousePressed(e -> deleteButton.setScaleX(0.9));
         addLineButton.setOnMouseReleased(e -> deleteButton.setScaleX(1.0));
-        startProcessButton.setStyle("-fx-background-color: rgba(227,0,176,0.3); -fx-text-fill: white;"); // Зеленая кнопка
+        startProcessButton.setStyle("-fx-background-color: rgba(227,0,176,0.3); -fx-text-fill: white;"); // фиолетовая кнопка
         startProcessButton.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         startProcessButton.setOnMousePressed(e -> startProcessButton.setScaleX(0.9));
         startProcessButton.setOnMouseReleased(e -> startProcessButton.setScaleX(1.0));
-        deleteButton.setStyle("-fx-background-color: #af4c5e; -fx-text-fill: white;"); // Зеленая кнопка
+        deleteButton.setStyle("-fx-background-color: #af4c5e; -fx-text-fill: white;"); // бежевая кнопка
         deleteButton.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         deleteButton.setOnMousePressed(e -> deleteButton.setScaleX(0.9));
         deleteButton.setOnMouseReleased(e -> deleteButton.setScaleX(1.0));
@@ -75,7 +75,7 @@ public class HelloApplication extends Application {
         addTransitionButton.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         addStateButton.setOnMousePressed(e -> addStateButton.setScaleX(0.9));
         addStateButton.setOnMouseReleased(e -> addStateButton.setScaleX(1.0));
-        VBox buttonsBox = new VBox(10, addStateButton, addTransitionButton, deleteButton);
+        VBox buttonsBox = new VBox(10, addStateButton, addTransitionButton, deleteButton); //добавление кнопок в общий контейнер
         buttonsBox.setAlignment(Pos.CENTER);
         buttonsBox.setPadding(new Insets(10));
         buttonsBox.setSpacing(20); // Установка пространства между кнопками
@@ -133,7 +133,7 @@ public class HelloApplication extends Application {
                 stateHolder.state = null; // Сбрасываем состояние
                 stateHolder.transition = null;
                 addStateButton.setSelected(false); // отключаем кнопку добавления состояния
-                deleteButton.setSelected(false); // о
+                deleteButton.setSelected(false);
                 addTransitionButton.setSelected(false);
                  // отключаем кнопку добавления состояния
             } else {
@@ -142,7 +142,7 @@ public class HelloApplication extends Application {
                 stateHolder.transition = null;
             }
         });
-
+        //данная кнопка отвечает за старт процесса переходов токенов, если токенов не хватает - выводит ошибку
         startProcessButton.setOnAction(event -> {
             System.out.println("hello");
             boolean tokenMoved = false;
@@ -179,6 +179,7 @@ public class HelloApplication extends Application {
                     }
                 }
             }
+            //вывод ошибки
             if(!tokenMoved){
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Error");
@@ -189,7 +190,7 @@ public class HelloApplication extends Application {
             System.out.println("simulation done!");
         });
 
-
+        //отслеживаем любой клик по сцене для отслеживания клика по кнопке
         root.setOnMouseClicked(event -> {
             double x = event.getX();
             double y = event.getY();
@@ -264,12 +265,14 @@ public class HelloApplication extends Application {
                         stateMouseEvent.consume();
                     }
                 });
+                //если нажата кнопка по добавлению перехода
             } else if(addTransitionButton.isSelected()){
                 PetriTransition newTransition = new PetriTransition("New Transition");
                 PetriTransitionView transitionView = new PetriTransitionView(x, y, 20, 30, newTransition);
                 root.getChildren().add(transitionView);
                 net.addTransition(newTransition);
             }
+            // если нажата кнопка по добавлению линии
             else if (addLineButton.isSelected()) {
                 boolean isTransitionActive = false;
                 if (stateHolder.state == null && stateHolder.transition == null) {
@@ -334,6 +337,8 @@ public class HelloApplication extends Application {
         });
 
     }
+
+    //отдельный метод по созданию текстового поля
     private TextField createTextField(double x, double y, String promptText) {
         TextField textField = new TextField();
         textField.setLayoutX(x);
@@ -341,7 +346,7 @@ public class HelloApplication extends Application {
         textField.setPromptText(promptText);
         return textField;
     }
-
+// подсчет суммы токенов
     public static int sumTokenValues(List<PetriStateView> petriStateViews) {
         return petriStateViews.stream()
                 .mapToInt(view -> {
