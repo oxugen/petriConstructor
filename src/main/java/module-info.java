@@ -10,6 +10,7 @@ module com.example.petriadcance {
     requires org.kordamp.bootstrapfx.core;
 
     requires com.almasb.fxgl.all;
+    requires java.sql;
 
     opens com.example.petriadcance to javafx.fxml;
     exports com.example.petriadcance;
