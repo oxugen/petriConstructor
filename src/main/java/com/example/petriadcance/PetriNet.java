@@ -12,6 +12,15 @@ public class PetriNet {
     private String description;
 
     private List<PetriLine> lines;
+
+    public List<PetriState> getStates() {
+        return states;
+    }
+
+    public List<PetriTransition> getTransitions() {
+        return transitions;
+    }
+
     public PetriNet() {
         states = new ArrayList<>();
         transitions = new ArrayList<>();

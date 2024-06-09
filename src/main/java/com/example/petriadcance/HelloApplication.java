@@ -38,21 +38,24 @@ import java.util.Optional;
 
 public class HelloApplication extends Application {
     private Node selectedObject;
+    private Timeline timeline;
     private PetriNet net = new PetriNet();
+    private int secondsElapsed = 0;
     private BorderPane root = new BorderPane();
+    private List<javafx.scene.Node> petriNetElements = new ArrayList<>(); // Список для хранения элементов сети Петри
     @Override
     public void start(Stage primaryStage) throws IOException {
 
 
-        primaryStage.setTitle("Petri Net Constructor");
+        primaryStage.setTitle("Конструктор Сети Петри");
         //создание главной сцены
         Scene scene = new Scene(root, 800, 600);
 
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        Button saveButton = new Button("Save net");
-        Button chooseNetworkButton = new Button("Choose net");
+        Button saveButton = new Button("Сохранить сеть");
+        Button chooseNetworkButton = new Button("Выбрать сеть");
         chooseNetworkButton.setOnAction(event -> {
             List<PetriNet> petriNets = DatabaseUtil.getPetriNets();
             ChoiceDialog<String> dialog = new ChoiceDialog<>(petriNets.get(0).getName(), petriNets.stream().map(p -> p.getName()).toList());
@@ -85,12 +88,12 @@ public class HelloApplication extends Application {
         } );
 
         //создание кнопок
-        ToggleButton addStateButton = new ToggleButton("Add State");
-        ToggleButton addLineButton = new ToggleButton("Add Line");
-        ToggleButton addTransitionButton = new ToggleButton("Add Transition");
+        ToggleButton addStateButton = new ToggleButton("Добавить состояние");
+        ToggleButton addLineButton = new ToggleButton("Добавить линию");
+        ToggleButton addTransitionButton = new ToggleButton("Добавить переход");
 
-        ToggleButton deleteButton = new ToggleButton("Delete");
-        Button startProcessButton = new Button("Start Process");
+        ToggleButton deleteButton = new ToggleButton("Удалить");
+        Button startProcessButton = new Button("Начало процесса");
         deleteButton.setOnAction(event -> {
             selectedObject = null;
         });
@@ -211,6 +214,9 @@ public class HelloApplication extends Application {
                             System.out.println("source Tokens " + sourceTokens);
                             // Обновляем значение токена через 2 секунды
                             timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(2), e -> {
+                                secondsElapsed++;
+                                secondsElapsed++;
+                                System.out.println(secondsElapsed);
                                 stateSource.setToken(String.valueOf(sourceTokens - 1)); // Обновляем значение токена
                             }));
                         }
@@ -219,6 +225,8 @@ public class HelloApplication extends Application {
                             System.out.println("target token" + targetTokens);
                             // Обновляем значение токена через 2 секунды
                             timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(2), e -> {
+                                secondsElapsed++;
+                                secondsElapsed++;
                                 petriTarget.setToken(String.valueOf(targetTokens + 1)); // Обновляем значение токена
                             }));
                         }
@@ -229,10 +237,15 @@ public class HelloApplication extends Application {
             }
             //вывод ошибки
             if(!tokenMoved){
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setHeaderText("Insufficient tokens");
-                alert.setContentText("There are not enough tokens in the source state(s) to transition.");
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Симуляция завершена!");
+                alert.setHeaderText("Недостаточно токенов для продолжения симуляции.");
+                alert.setContentText("Результаты работы: \n" +
+                        "Время работы симуляции:" + secondsElapsed + " секунд \n" +
+                        "Количество токенов:" + countOfTokens() + "\n" +
+                        "Количество состояний:" + net.getStates().stream().count() + "\n" +
+                        "Количество переходов:" + net.getTransitions().stream().count()
+                );
                 alert.showAndWait();
             }
             System.out.println("simulation done!");
@@ -275,7 +288,7 @@ public class HelloApplication extends Application {
                 // Сброс выбранного объекта
                 selectedObject = null;
                 // Выключение режима удаления
-                deleteButton.setSelected(false);
+                //deleteButton.setSelected(false);
             }
 
             if (addStateButton.isSelected()) {
@@ -292,9 +305,9 @@ public class HelloApplication extends Application {
                     if (stateMouseEvent.getButton() == MouseButton.PRIMARY) {
                         // Открываем диалоговое окно для изменения имени состояния
                         TextInputDialog dialog = new TextInputDialog(newState.getName());
-                        dialog.setTitle("Edit State Name");
-                        dialog.setHeaderText("Enter new state name:");
-                        dialog.setContentText("Name:");
+                        dialog.setTitle("Изменить название состояния");
+                        dialog.setHeaderText("Введите новое название:");
+                        dialog.setContentText("Название:");
 
                         Optional<String> result = dialog.showAndWait();
                         result.ifPresent(name -> {
@@ -432,6 +445,7 @@ public class HelloApplication extends Application {
         }
     }
     public void loadPetriNet(String petriNetName) {
+        clearCanvas();
         int petriNetId = 0;
         List<PetriStateView> stateViews = new ArrayList<>();
         List<PetriTransition> petriTransitions = new ArrayList<>();
@@ -468,13 +482,16 @@ public class HelloApplication extends Application {
                         net.addState(state);
                         petriStates.add(state);
                         stateViews.add(newStateView);
+                        petriNetElements.add(newStateView);
+                        petriNetElements.add(newStateView.getStateName());
+                        petriNetElements.add(newStateView.getToken());
                         newStateView.setOnMouseClicked(stateMouseEvent -> {
                             if (stateMouseEvent.getButton() == MouseButton.PRIMARY) {
                                 // Открываем диалоговое окно для изменения имени состояния
                                 TextInputDialog dialog = new TextInputDialog(state.getName());
-                                dialog.setTitle("Edit State Name");
-                                dialog.setHeaderText("Enter new state name:");
-                                dialog.setContentText("Name:");
+                                dialog.setTitle("Изменить название состояния");
+                                dialog.setHeaderText("Введите новое название:");
+                                dialog.setContentText("Название:");
 
                                 Optional<String> result = dialog.showAndWait();
                                 result.ifPresent(nameOfState -> {
@@ -523,6 +540,7 @@ public class HelloApplication extends Application {
                         petriTransitions.add(transition);
                         root.getChildren().add(transitionView);
                         net.addTransition(transition);
+                        petriNetElements.add(transitionView);
                     }
                 }
             }
@@ -550,6 +568,7 @@ public class HelloApplication extends Application {
                         PetriLineView lineView = new PetriLineView(startX, startY, endX, endY, line, petriTransition, petriState);
                         net.addLine(line);
                         root.getChildren().add(lineView);
+                        petriNetElements.add(lineView);
                     }
                 }
             }
@@ -560,6 +579,19 @@ public class HelloApplication extends Application {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+    private int countOfTokens(){
+        int countOfTokens = 0;
+        for (Node node : root.getChildren()) {
+            if (node instanceof PetriStateView stateView){
+                countOfTokens += Integer.parseInt(stateView.getToken().getText());
+            }
+        }
+        return countOfTokens;
+    }
+    private void clearCanvas() {
+        root.getChildren().removeAll(petriNetElements);
+        petriNetElements.clear();
     }
     public static PetriStateView getStateById(int stateId, List<PetriStateView> stateViews) {
         for (PetriStateView view : stateViews) {
