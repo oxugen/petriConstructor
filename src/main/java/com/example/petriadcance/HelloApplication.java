@@ -56,6 +56,12 @@ public class HelloApplication extends Application {
 
         Button saveButton = new Button("Сохранить сеть");
         Button chooseNetworkButton = new Button("Выбрать сеть");
+        Button checkReachabilityButton = new Button("Проверить достижимость");
+        Button checkSafetyButton = new Button("Проверить безопасность");
+        Button checkAllStatesReachableButton = new Button("Проверить живучесть");
+        checkReachabilityButton.setOnAction(event -> checkReachability());
+        checkSafetyButton.setOnAction(event -> checkSafety());
+        checkAllStatesReachableButton.setOnAction(event -> checkAllStatesReachable());
         chooseNetworkButton.setOnAction(event -> {
             List<PetriNet> petriNets = DatabaseUtil.getPetriNets();
             ChoiceDialog<String> dialog = new ChoiceDialog<>(petriNets.get(0).getName(), petriNets.stream().map(p -> p.getName()).toList());
@@ -137,7 +143,22 @@ public class HelloApplication extends Application {
         VBox menuBox = new VBox(10);
         menuBox.setPadding(new Insets(10));
         menuBox.setAlignment(Pos.TOP_LEFT);
+        checkReachabilityButton.setStyle("-fx-background-color: #8B0000; -fx-text-fill: white;");
+        checkReachabilityButton.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        checkReachabilityButton.setOnMousePressed(e -> checkReachabilityButton.setScaleX(0.9));
+        checkReachabilityButton.setOnMouseReleased(e -> checkReachabilityButton.setScaleX(1.0));
 
+        checkSafetyButton.setStyle("-fx-background-color: #FF8C00; -fx-text-fill: white;");
+        checkSafetyButton.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        checkSafetyButton.setOnMousePressed(e -> checkSafetyButton.setScaleX(0.9));
+        checkSafetyButton.setOnMouseReleased(e -> checkSafetyButton.setScaleX(1.0));
+
+        checkAllStatesReachableButton.setStyle("-fx-background-color: #006400; -fx-text-fill: white;");
+        checkAllStatesReachableButton.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        checkAllStatesReachableButton.setOnMousePressed(e -> checkAllStatesReachableButton.setScaleX(0.9));
+        checkAllStatesReachableButton.setOnMouseReleased(e -> checkAllStatesReachableButton.setScaleX(1.0));
+
+        menuBox.getChildren().addAll(checkReachabilityButton, checkSafetyButton, checkAllStatesReachableButton);
 // Добавление кнопок в меню
         menuBox.getChildren().addAll(addStateButton, addTransitionButton, addLineButton, deleteButton, startProcessButton);
         menuBox.getChildren().add(saveButton);
@@ -430,6 +451,77 @@ public class HelloApplication extends Application {
                 })
                 .sum();
     }
+    private void checkReachability() {
+        boolean isReachable = false;
+        List<PetriTransition> transitions = new ArrayList<>();
+        for (Node node : root.getChildren()) {
+            if (node instanceof PetriTransitionView transitionView){
+                isReachable = true;
+                transitions.add(transitionView.getTransition());
+            }
+        }
+        for(Node node : root.getChildren()){
+            if (node instanceof PetriStateView stateView){
+                for(PetriTransition transition : transitions){
+                    if(!transition.getSourceState().contains(stateView) && !transition.getTargetState().contains(stateView)){
+                        isReachable = false;
+                        break;
+                    }
+                }
+            }
+        }
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Проверка достижимости");
+        alert.setHeaderText(null);
+        alert.setContentText(isReachable ? "Все состояния достижимы." : "Есть недостижимые состояния.");
+        alert.showAndWait();
+    }
+
+    private void checkSafety() {
+        boolean isSafe = false;
+        for (Node node : root.getChildren()) {
+            if (node instanceof PetriStateView stateView){
+                if(!(stateView.getToken().getText().equals("0") || stateView.getToken().getText().equals("1"))){
+                    isSafe = false;
+                    break;
+                }
+                else{
+                    isSafe = true;
+                }
+            }
+        }
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Проверка безопасности");
+        alert.setHeaderText(null);
+        alert.setContentText(isSafe ? "Сеть находится в безопасном состоянии." : "Сеть не безопасна.");
+        alert.showAndWait();
+    }
+
+    private void checkAllStatesReachable() {
+        boolean allReachable = false;
+        boolean tokenMoved = false;
+        for (Node node : root.getChildren()) {
+            if (node instanceof PetriTransitionView startTransition) {
+                allReachable = true;
+                List<PetriStateView> sourceOfStartStates = startTransition.getTransition().getSourceState();
+                List<PetriStateView> sourceOfTargetStates = startTransition.getTransition().getTargetState();
+                System.out.println("source" + sourceOfStartStates + "\n" + "target" + sourceOfTargetStates);
+                if (sumTokenValues(sourceOfStartStates) >= sourceOfTargetStates.size()) {
+                    tokenMoved = true;
+                }
+            }
+        }
+        //вывод ошибки
+        if(!tokenMoved){
+            allReachable = false;
+        }
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Проверка живучести");
+        alert.setHeaderText(null);
+        alert.setContentText(allReachable ? "Сеть находится в живучем состоянии." : "Сеть не находится в живучем состоянии.");
+        alert.showAndWait();
+    }
+
     class TransitionHandler implements EventHandler<ActionEvent> {
         private PetriStateView state;
         private int newTokens;
