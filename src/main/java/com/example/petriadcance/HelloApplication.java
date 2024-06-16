@@ -56,9 +56,9 @@ public class HelloApplication extends Application {
 
         Button saveButton = new Button("Сохранить сеть");
         Button chooseNetworkButton = new Button("Выбрать сеть");
-        Button checkReachabilityButton = new Button("Проверить достижимость");
+        Button checkReachabilityButton = new Button("Проверить связность");
         Button checkSafetyButton = new Button("Проверить безопасность");
-        Button checkAllStatesReachableButton = new Button("Проверить живучесть");
+        Button checkAllStatesReachableButton = new Button("Проверить достижимость");
         checkReachabilityButton.setOnAction(event -> checkReachability());
         checkSafetyButton.setOnAction(event -> checkSafety());
         checkAllStatesReachableButton.setOnAction(event -> checkAllStatesReachable());
@@ -221,42 +221,25 @@ public class HelloApplication extends Application {
         startProcessButton.setOnAction(event -> {
             System.out.println("hello");
             boolean tokenMoved = false;
+            List<PetriTransitionView> transitionsToProcess = new ArrayList<>();
+
             for (Node node : root.getChildren()) {
                 if (node instanceof PetriTransitionView startTransition) {
                     List<PetriStateView> sourceOfStartStates = startTransition.getTransition().getSourceState();
                     List<PetriStateView> sourceOfTargetStates = startTransition.getTransition().getTargetState();
                     System.out.println("source" + sourceOfStartStates + "\n" + "target" + sourceOfTargetStates);
+
                     if (sumTokenValues(sourceOfStartStates) >= sourceOfTargetStates.size()) {
-                        tokenMoved = true;
-                        Timeline timeline = new Timeline();
-                        // Добавляем события в Timeline для обновления токенов
-                        for (PetriStateView stateSource : sourceOfStartStates) {
-                            int sourceTokens = Integer.parseInt(stateSource.getToken().getText());
-                            System.out.println("source Tokens " + sourceTokens);
-                            // Обновляем значение токена через 2 секунды
-                            timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(2), e -> {
-                                secondsElapsed++;
-                                secondsElapsed++;
-                                System.out.println(secondsElapsed);
-                                stateSource.setToken(String.valueOf(sourceTokens - 1)); // Обновляем значение токена
-                            }));
-                        }
-                        for (PetriStateView petriTarget : sourceOfTargetStates) {
-                            int targetTokens = Integer.parseInt(petriTarget.getToken().getText());
-                            System.out.println("target token" + targetTokens);
-                            // Обновляем значение токена через 2 секунды
-                            timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(2), e -> {
-                                secondsElapsed++;
-                                secondsElapsed++;
-                                petriTarget.setToken(String.valueOf(targetTokens + 1)); // Обновляем значение токена
-                            }));
-                        }
-                        // Обновляем значения токенов
-                        timeline.play();
+                        transitionsToProcess.add(startTransition);
                     }
                 }
             }
-            //вывод ошибки
+
+            if (!transitionsToProcess.isEmpty()) {
+                tokenMoved = true;
+                processTransitions(transitionsToProcess, 0);
+            }
+
             if(!tokenMoved){
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                 alert.setTitle("Симуляция завершена!");
@@ -427,7 +410,63 @@ public class HelloApplication extends Application {
         });
 
     }
+    private void processTransitions(List<PetriTransitionView> transitions, int index) {
+        if (index >= transitions.size()) {
+            return;
+        }
 
+        PetriTransitionView startTransition = transitions.get(index);
+        List<PetriStateView> sourceOfStartStates = startTransition.getTransition().getSourceState();
+        List<PetriStateView> sourceOfTargetStates = startTransition.getTransition().getTargetState();
+
+        // Check token availability again just before the update
+        if (sumTokenValues(sourceOfStartStates) < sourceOfTargetStates.size()) {
+            // If not enough tokens, stop further processing and do not proceed with this transition
+            System.out.println("Not enough tokens for transition: " + startTransition);
+            processTransitions(transitions, index + 1); // Move to next transition
+            return;
+        }
+
+        // Atomic token transfer
+        Timeline timeline = new Timeline();
+
+        List<Integer> originalSourceTokens = new ArrayList<>();
+        for (PetriStateView stateSource : sourceOfStartStates) {
+            originalSourceTokens.add(Integer.parseInt(stateSource.getToken().getText()));
+        }
+
+        // Decrement source tokens
+        timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(2), e -> {
+            for (int i = 0; i < sourceOfStartStates.size(); i++) {
+                PetriStateView stateSource = sourceOfStartStates.get(i);
+                int sourceTokens = originalSourceTokens.get(i) - sourceOfTargetStates.size();
+                stateSource.setToken(String.valueOf(sourceTokens));
+                System.out.println("Updated source tokens: " + sourceTokens);
+            }
+        }));
+
+        // Prepare to increment target tokens
+        List<Integer> originalTargetTokens = new ArrayList<>();
+        for (PetriStateView petriTarget : sourceOfTargetStates) {
+            originalTargetTokens.add(Integer.parseInt(petriTarget.getToken().getText()));
+        }
+
+        // Increment target tokens
+        timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(2.1), e -> {
+            for (int i = 0; i < sourceOfTargetStates.size(); i++) {
+                PetriStateView petriTarget = sourceOfTargetStates.get(i);
+                int targetTokens = originalTargetTokens.get(i) + 1;
+                petriTarget.setToken(String.valueOf(targetTokens));
+                System.out.println("Updated target tokens: " + targetTokens);
+            }
+        }));
+
+        timeline.setOnFinished(e -> processTransitions(transitions, index + 1));
+        timeline.play();
+    }
+    private int sumTokenValues(List<PetriStateView> states) {
+        return states.stream().mapToInt(state -> Integer.parseInt(state.getToken().getText())).sum();
+    }
     //отдельный метод по созданию текстового поля
     private TextField createTextField(double x, double y, String promptText) {
         TextField textField = new TextField();
@@ -437,20 +476,20 @@ public class HelloApplication extends Application {
         return textField;
     }
 // подсчет суммы токенов
-    public static int sumTokenValues(List<PetriStateView> petriStateViews) {
-        return petriStateViews.stream()
-                .mapToInt(view -> {
-                    String tokenValue = view.getToken().getText();
-                    try {
-                        return Integer.parseInt(tokenValue);
-                    } catch (NumberFormatException e) {
-                        // Обработка исключения, если значение token не удалось преобразовать в int
-                        System.err.println("Ошибка при преобразовании значения token в int: " + e.getMessage());
-                        return 0; // Возвращаем 0 в случае ошибки преобразования
-                    }
-                })
-                .sum();
-    }
+//    public static int sumTokenValues(List<PetriStateView> petriStateViews) {
+//        return petriStateViews.stream()
+//                .mapToInt(view -> {
+//                    String tokenValue = view.getToken().getText();
+//                    try {
+//                        return Integer.parseInt(tokenValue);
+//                    } catch (NumberFormatException e) {
+//                        // Обработка исключения, если значение token не удалось преобразовать в int
+//                        System.err.println("Ошибка при преобразовании значения token в int: " + e.getMessage());
+//                        return 0; // Возвращаем 0 в случае ошибки преобразования
+//                    }
+//                })
+//                .sum();
+//    }
     private void checkReachability() {
         boolean isReachable = false;
         List<PetriTransition> transitions = new ArrayList<>();
@@ -471,9 +510,9 @@ public class HelloApplication extends Application {
             }
         }
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Проверка достижимости");
+        alert.setTitle("Проверка связности");
         alert.setHeaderText(null);
-        alert.setContentText(isReachable ? "Все состояния достижимы." : "Есть недостижимые состояния.");
+        alert.setContentText(isReachable ? "Все состояния связаны." : "Есть не связные состояния.");
         alert.showAndWait();
     }
 
@@ -516,9 +555,9 @@ public class HelloApplication extends Application {
             allReachable = false;
         }
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Проверка живучести");
+        alert.setTitle("Проверка достижимости");
         alert.setHeaderText(null);
-        alert.setContentText(allReachable ? "Сеть находится в живучем состоянии." : "Сеть не находится в живучем состоянии.");
+        alert.setContentText(allReachable ? "Все состояния достижимы." : "Есть недостижимые состояния.");
         alert.showAndWait();
     }
 
